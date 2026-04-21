@@ -202,7 +202,7 @@ begin
         next
       end
 
-      if text == '/last' || text == '🔙 Последнее'
+      if text == '/last' || text == ' Последнее'
         last = $store.last(uid)
         if last['expr'].empty?
           send(bot, chat_id, 'Нет сохранённых результатов')
@@ -215,6 +215,109 @@ begin
       if text == '/clear' || text == 'Очистить'
         $store.clear_history(uid)
         send(bot, chat_id, 'История очищена')
+        next
+      end
+
+
+      if text == 'Дифференцировать'
+        $store.set_state(uid, 'wait_diff')
+        send(bot, chat_id, ' Введите выражение для дифференцирования\n\nПример: `3*x^2 + 2*x + 1`', cancel_keyboard)
+        next
+      end
+
+      if text == '∫ Интегрировать'
+        $store.set_state(uid, 'wait_integrate')
+        send(bot, chat_id, '∫ Введите выражение для интегрирования\n\nПример: `x^2 + 3*x`', cancel_keyboard)
+        next
+      end
+
+      if cur_state == 'wait_diff'
+        typing(bot, chat_id)
+        expr = text.strip
+        
+        if expr.empty?
+          send(bot, chat_id, ' Выражение не может быть пустым')
+          next
+        end
+        
+        begin
+          poly = SymbolicMath::Parser.parse(expr)
+          res = poly.differentiate
+          res_fmt = res.to_s.gsub(/\.0(?=[^0-9]|$)/, '')
+          
+          $store.add_history(uid, 'diff', expr, res_fmt)
+          $store.set_state(uid, 'main')
+          
+          send(bot, chat_id, " *Производная*\n\n`#{expr}`\n\n\n\n`#{res_fmt}`", main_keyboard)
+        rescue => e
+          send(bot, chat_id, " Ошибка: #{e.message}\n\nПример: `/diff 3*x^2`", cancel_keyboard)
+        end
+        next
+      end
+
+      if cur_state == 'wait_integrate'
+        typing(bot, chat_id)
+        expr = text.strip
+        
+        if expr.empty?
+          send(bot, chat_id, ' Выражение не может быть пустым')
+          next
+        end
+        
+        begin
+          poly = SymbolicMath::Parser.parse(expr)
+          res = poly.integrate
+          res_fmt = res.to_s.gsub(/\.0(?=[^0-9]|$)/, '')
+          
+          $store.add_history(uid, 'integ', expr, res_fmt)
+          $store.set_state(uid, 'main')
+          
+          send(bot, chat_id, "∫ *Интеграл*\n\n`#{expr} dx`\n\n\n\n`#{res_fmt} + C`", main_keyboard)
+        rescue => e
+          send(bot, chat_id, " Ошибка: #{e.message}\n\nПример: `/integrate x^2`", cancel_keyboard)
+        end
+        next
+      end
+
+      if text.start_with?('/diff ')
+        expr = text[6..-1].strip
+        typing(bot, chat_id)
+        
+        if expr.empty?
+          send(bot, chat_id, ' Пример: `/diff 3*x^2`')
+          next
+        end
+        
+        begin
+          poly = SymbolicMath::Parser.parse(expr)
+          res = poly.differentiate
+          res_fmt = res.to_s.gsub(/\.0(?=[^0-9]|$)/, '')
+          $store.add_history(uid, 'diff', expr, res_fmt)
+          send(bot, chat_id, " `#{expr}` = `#{res_fmt}`")
+        rescue => e
+          send(bot, chat_id, " Ошибка: #{e.message}")
+        end
+        next
+      end
+
+      if text.start_with?('/integrate ')
+        expr = text[11..-1].strip
+        typing(bot, chat_id)
+        
+        if expr.empty?
+          send(bot, chat_id, ' Пример: `/integrate x^2`')
+          next
+        end
+        
+        begin
+          poly = SymbolicMath::Parser.parse(expr)
+          res = poly.integrate
+          res_fmt = res.to_s.gsub(/\.0(?=[^0-9]|$)/, '')
+          $store.add_history(uid, 'integ', expr, res_fmt)
+          send(bot, chat_id, "∫ `#{expr} dx` = `#{res_fmt} + C`")
+        rescue => e
+          send(bot, chat_id, " Ошибка: #{e.message}")
+        end
         next
       end
 if cur_state == 'main'
