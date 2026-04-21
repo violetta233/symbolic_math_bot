@@ -5,6 +5,13 @@ require 'dotenv/load'
 require 'symbolic_math'
 require 'json'
 
+require_relative 'states/base_state'
+require_relative 'states/main_state'
+require_relative 'states/wait_diff_state'
+require_relative 'states/wait_integrate_state'
+require_relative 'states/wait_solve_state'
+require_relative 'states/wait_expand_state'
+
 TOKEN = ENV['BOT_TOKEN']
 
 class UserStore
@@ -328,4 +335,16 @@ if cur_state == 'main'
 rescue => e
   puts "Ошибка: #{e.message}"
   puts e.backtrace
+  state_class = case $store.state(uid)
+      when 'main' then States::MainState
+      when 'wait_diff' then States::WaitDiffState
+      when 'wait_integrate' then States::WaitIntegrateState
+      when 'wait_solve' then States::WaitSolveState
+      when 'wait_expand' then States::WaitExpandState
+      else States::MainState
+      end
+      
+      state = state_class.new(bot, message, $store)
+      state.handle
+      next
 end
