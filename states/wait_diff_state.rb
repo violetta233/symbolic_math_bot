@@ -9,13 +9,15 @@ module States
       typing
       return send_msg('Пусто', cancel_kb) if @text.strip.empty?
       begin
-        res = SymbolicMath::Parser.parse(@text)
-        @store.add_history(@uid, 'diff', @text, fmt(res.to_s))
+        expr = SymbolicMath::Parser.parse(@text)
+        result = SymbolicMath::Differentiator.differentiate(expr, 'x')
+        
+        @store.add_history(@uid, 'diff', @text, fmt(result.to_s))
         @store.set_state(@uid, 'main')
-        send_msg("Производная: #{fmt(res.to_s)}", main_kb)
+        send_msg("Производная: #{fmt(result.to_s)}", main_kb)
       rescue => e
         send_msg("Ошибка: #{e.message}", cancel_kb)
       end
     end
   end
-end
+end 

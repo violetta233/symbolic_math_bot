@@ -9,10 +9,11 @@ module States
       typing
       return send_msg('Пусто', cancel_kb) if @text.strip.empty?
       begin
-        res = SymbolicMath::Parser.parse(@text)
-        @store.add_history(@uid, 'expand', @text, fmt(res.to_s))
+        result = SymbolicMath::Expander.expand(@text)
+        
+        @store.add_history(@uid, 'expand', @text, fmt(result.to_s))
         @store.set_state(@uid, 'main')
-        send_msg("Результат: #{fmt(res.to_s)}", main_kb)
+        send_msg("Результат: #{fmt(result.to_s)}", main_kb)
       rescue => e
         send_msg("Ошибка: #{e.message}", cancel_kb)
       end

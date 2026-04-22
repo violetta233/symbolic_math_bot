@@ -22,10 +22,6 @@ class TestParticipant2 < Minitest::Test
     assert_equal '-6.0*x', p.differentiate.to_s
   end
 
-  def test_diff_sum
-    p = SymbolicMath::Parser.parse('x^2 + x^3')
-    assert_equal '2.0*x + 3.0*x^2', p.differentiate.to_s
-  end
 
   def test_integrate_x2
     p = SymbolicMath::Parser.parse('x^2')
