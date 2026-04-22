@@ -14,6 +14,8 @@ require_relative 'states/wait_expand_state'
 
 TOKEN = ENV['BOT_TOKEN']
 
+#  ХРАНИЛИЩЕ 
+
 class UserStore
   def initialize(file = 'users.json')
     @file = file
@@ -26,7 +28,7 @@ class UserStore
 
   def get(uid)
     uid = uid.to_s
-    @data[uid] ||= {
+    @data[uid] = {
       state: 'main',
       history: [],
       stats: { total: 0, diff: 0, integ: 0, solve: 0, expand: 0 },
@@ -73,7 +75,7 @@ class UserStore
   end
 
   def reset(uid)
-    @data.delete(uid.to_s)
+    uid.to_s
     save
   end
 end
@@ -96,7 +98,7 @@ def cancel_keyboard
   { keyboard: [['Отмена']], resize_keyboard: true, one_time_keyboard: true }
 end
 
-def send(bot, chat_id, text, kb = nil)
+def send_msg(bot, chat_id, text, kb = nil)
   opt = { chat_id: chat_id, text: text, parse_mode: 'Markdown' }
   opt[:reply_markup] = kb if kb
   bot.api.send_message(opt)
@@ -106,81 +108,81 @@ def typing(bot, chat_id)
   bot.api.send_chat_action(chat_id: chat_id, action: 'typing')
 end
 
-puts 'Бот запущен!'
+# ГЛАВНЫЙ ЦИКЛ БОТА 
+
+puts 'Бот запущен'
 
 begin
   Telegram::Bot::Client.run(TOKEN) do |bot|
-    bot.listen do |msg|
-      text = msg.text
-      chat_id = msg.chat.id
-      uid = msg.from.id
-      username = msg.from.username || msg.from.first_name
+    bot.listen do |message|
+      text = message.text
+      chat_id = message.chat.id
+      uid = message.from.id
+      username = message.from.username  message.from.first_name
 
       puts "[#{uid}] #{username}: #{text}"
 
       cur_state = $store.state(uid)
 
+      #  БАЗОВЫЕ КОМАНДЫ
+
       if text == '/start'
         $store.reset(uid)
         welcome = <<~TEXT
-           *Привет, #{username}!*
-
+          *Привет, #{username}!*
           Я бот для символьной математики.
 
           *Команды:*
-          `/diff [выражение]` - производная
-          `/integrate [выражение]` - интеграл
-          `/solve [уравнение]` - решение
-          `/expand [выражение]` - раскрыть скобки
+          /diff [выражение] - производная
+          /integrate [выражение] - интеграл
+          /solve [уравнение] - решение
+          /expand [выражение] - раскрыть скобки
 
-          `/history` - история
-          `/stats` - статистика
-          `/last` - последний результат
-          `/clear` - очистить историю
-          `/cancel` - отмена
-          `/help` - справка
+          /history - история
+          /stats - статистика
+          /last - последний результат
+          /clear - очистить историю
+          /cancel - отмена
+          /help - справка
         TEXT
-        send(bot, chat_id, welcome, main_keyboard)
+        send_msg(bot, chat_id, welcome, main_keyboard)
         next
       end
-
-      if text == '/help' || text == 'Помощь'
+      if text == '/help'  text == 'Помощь'
         help = <<~TEXT
           *Справка*
-
           *Математика:*
           `/diff 3*x^2` → `6*x`
           `/integrate x^2` → `x^3/3 + C`
           `/solve x^2-4=0` → `x₁ = 2, x₂ = -2`
           `/expand (x+2)*(x-3)` → `x^2 - x - 6`
-
           *Управление:*
           `/history` - показать историю
-          `/stats` - статистика использования
+          `/stats` - статистика
           `/last` - последний результат
           `/clear` - очистить историю
           `/cancel` - отменить действие
           `/menu` - показать меню
         TEXT
-        send(bot, chat_id, help)
+        send_msg(bot, chat_id, help)
         next
       end
 
       if text == '/menu'
-        send(bot, chat_id, '*Главное меню*', main_keyboard)
+        send_msg(bot, chat_id, '*Главное меню*', main_keyboard)
         next
       end
 
-      if text == '/cancel' || text == 'Отмена'
+      if text == '/cancel'  text == 'Отмена'
         $store.set_state(uid, 'main')
-        send(bot, chat_id, 'Действие отменено', main_keyboard)
+        send_msg(bot, chat_id, 'Действие отменено', main_keyboard)
         next
       end
 
-      if text == '/history' || text == 'История'
+      if text == '/history'  text == 'История'
         hist = $store.history(uid)
         if hist.empty?
-          send(bot, chat_id, 'История пуста')
+          send_msg(bot, chat_id, 'История пуста')
         else
           msg = "*История операций*\n\n"
           hist.each_with_index do |h, i|
@@ -188,12 +190,12 @@ begin
             msg += "   `#{h['input'][0..40]}`\n"
             msg += "   → `#{h['output'][0..40]}`\n\n"
           end
-          send(bot, chat_id, msg)
+          send_msg(bot, chat_id, msg)
         end
         next
       end
 
-      if text == '/stats' || text == 'Статистика'
+      if text == '/stats'  text == 'Статистика'
         s = $store.stats(uid)
         msg = <<~TEXT
           *Ваша статистика*
@@ -205,146 +207,74 @@ begin
           Решений уравнений: #{s['solve']}
           Раскрытий скобок: #{s['expand']}
         TEXT
-        send(bot, chat_id, msg)
+        send_msg(bot, chat_id, msg)
         next
       end
 
-      if text == '/last' || text == ' Последнее'
+      if text == '/last'
         last = $store.last(uid)
         if last['expr'].empty?
-          send(bot, chat_id, 'Нет сохранённых результатов')
+          send_msg(bot, chat_id, 'Нет сохранённых результатов')
         else
-          send(bot, chat_id, "*Последний результат*\n\n`#{last['expr']}`\n\n\n\n`#{last['result']}`")
+          send_msg(bot, chat_id, "*Последний результат*\n\n`#{last['expr']}\n\n`#{last['result']}")
         end
         next
       end
 
-      if text == '/clear' || text == 'Очистить'
+      if text == '/clear'
         $store.clear_history(uid)
-        send(bot, chat_id, 'История очищена')
+        send_msg(bot, chat_id, 'История очищена')
         next
       end
 
+      #  КНОПКИ МЕНЮ 
 
       if text == 'Дифференцировать'
         $store.set_state(uid, 'wait_diff')
-        send(bot, chat_id, ' Введите выражение для дифференцирования\n\nПример: `3*x^2 + 2*x + 1`', cancel_keyboard)
+        send_msg(bot, chat_id, 'Введите выражение для дифференцирования\n\nПример: 3*x^2 + 2*x + 1', cancel_keyboard)
         next
       end
 
-      if text == '∫ Интегрировать'
+      if text == 'Интегрировать'
         $store.set_state(uid, 'wait_integrate')
-        send(bot, chat_id, '∫ Введите выражение для интегрирования\n\nПример: `x^2 + 3*x`', cancel_keyboard)
+        send_msg(bot, chat_id, 'Введите выражение для интегрирования\n\nПример: x^2 + 3*x', cancel_keyboard)
         next
       end
 
-      if cur_state == 'wait_diff'
-        typing(bot, chat_id)
-        expr = text.strip
-        
-        if expr.empty?
-          send(bot, chat_id, ' Выражение не может быть пустым')
-          next
-        end
-        
-        begin
-          poly = SymbolicMath::Parser.parse(expr)
-          res = poly.differentiate
-          res_fmt = res.to_s.gsub(/\.0(?=[^0-9]|$)/, '')
-          
-          $store.add_history(uid, 'diff', expr, res_fmt)
-          $store.set_state(uid, 'main')
-          
-          send(bot, chat_id, " *Производная*\n\n`#{expr}`\n\n\n\n`#{res_fmt}`", main_keyboard)
-        rescue => e
-          send(bot, chat_id, " Ошибка: #{e.message}\n\nПример: `/diff 3*x^2`", cancel_keyboard)
-        end
+      if text == 'Решить уравнение'
+        $store.set_state(uid, 'wait_solve')
+        send_msg(bot, chat_id, 'Введите уравнение\n\nПримеры:\n`2*x + 3 = 7`\n`x^2 - 5*x + 6 = 0`', cancel_keyboard)
         next
       end
 
-      if cur_state == 'wait_integrate'
-        typing(bot, chat_id)
-        expr = text.strip
-        
-        if expr.empty?
-          send(bot, chat_id, ' Выражение не может быть пустым')
-          next
-        end
-        
-        begin
-          poly = SymbolicMath::Parser.parse(expr)
-          res = poly.integrate
-          res_fmt = res.to_s.gsub(/\.0(?=[^0-9]|$)/, '')
-          
-          $store.add_history(uid, 'integ', expr, res_fmt)
-          $store.set_state(uid, 'main')
-          
-          send(bot, chat_id, "∫ *Интеграл*\n\n`#{expr} dx`\n\n\n\n`#{res_fmt} + C`", main_keyboard)
-        rescue => e
-          send(bot, chat_id, " Ошибка: #{e.message}\n\nПример: `/integrate x^2`", cancel_keyboard)
-        end
+      if text == 'Раскрыть скобки'
+        $store.set_state(uid, 'wait_expand')
+        send_msg(bot, chat_id, 'Введите выражение со скобками\n\nПример: (x+2)*(x-3)', cancel_keyboard)
         next
       end
 
-      if text.start_with?('/diff ')
-        expr = text[6..-1].strip
-        typing(bot, chat_id)
-        
-        if expr.empty?
-          send(bot, chat_id, ' Пример: `/diff 3*x^2`')
-          next
-        end
-        
-        begin
-          poly = SymbolicMath::Parser.parse(expr)
-          res = poly.differentiate
-          res_fmt = res.to_s.gsub(/\.0(?=[^0-9]|$)/, '')
-          $store.add_history(uid, 'diff', expr, res_fmt)
-          send(bot, chat_id, " `#{expr}` = `#{res_fmt}`")
-        rescue => e
-          send(bot, chat_id, " Ошибка: #{e.message}")
-        end
-        next
+      # ========== ОБРАБОТКА СОСТОЯНИЙ (через классы!) ==========
+
+      state_class = case cur_state
+      when 'main'
+        States::MainState
+      when 'wait_diff'
+        States::WaitDiffState
+      when 'wait_integrate'
+        States::WaitIntegrateState
+      when 'wait_solve'
+        States::WaitSolveState
+      when 'wait_expand'
+        States::WaitExpandState
+      else
+        States::MainState
       end
 
-      if text.start_with?('/integrate ')
-        expr = text[11..-1].strip
-        typing(bot, chat_id)
-        
-        if expr.empty?
-          send(bot, chat_id, ' Пример: `/integrate x^2`')
-          next
-        end
-        
-        begin
-          poly = SymbolicMath::Parser.parse(expr)
-          res = poly.integrate
-          res_fmt = res.to_s.gsub(/\.0(?=[^0-9]|$)/, '')
-          $store.add_history(uid, 'integ', expr, res_fmt)
-          send(bot, chat_id, "∫ `#{expr} dx` = `#{res_fmt} + C`")
-        rescue => e
-          send(bot, chat_id, " Ошибка: #{e.message}")
-        end
-        next
-      end
-if cur_state == 'main'
-        send(bot, chat_id, 'Неизвестная команда. Введи /help', main_keyboard)
-      end
+      state = state_class.new(bot, message, $store)
+      state.handle
     end
   end
 rescue => e
-  puts "Ошибка: #{e.message}"
+  puts "Критическая ошибка: #{e.message}"
   puts e.backtrace
-  state_class = case $store.state(uid)
-      when 'main' then States::MainState
-      when 'wait_diff' then States::WaitDiffState
-      when 'wait_integrate' then States::WaitIntegrateState
-      when 'wait_solve' then States::WaitSolveState
-      when 'wait_expand' then States::WaitExpandState
-      else States::MainState
-      end
-      
-      state = state_class.new(bot, message, $store)
-      state.handle
-      next
 end
