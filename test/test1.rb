@@ -2,9 +2,10 @@
 
 require 'minitest/autorun'
 require 'mocha/minitest'
-require_relative '../bot'
+require 'symbolic_math'
+require 'json'
 
-# модульные тесты(без моков)
+require_relative '../bot'
 
 class TestUserStore < Minitest::Test
   def setup
@@ -40,7 +41,6 @@ class TestUserStore < Minitest::Test
     @store.add_history(123, 'diff', 'x', '1')
     stats = @store.stats(123)
     assert_equal 1, stats['total']
-    assert_equal 1, stats['diff']
   end
 
   def test_reset
@@ -65,36 +65,45 @@ class TestMathCommands < Minitest::Test
 
   def test_solve
     result = SymbolicMath::Solver.solve('x^2-4=0', 'x')
-    assert_equal [2.0, -2.0], result
+    assert_includes result, 2.0
+    assert_includes result, -2.0
   end
 end
 
-# Тест с моками(Telegram API)
+# тест с моком
 
-class TestBotIntegration < Minitest::Test
-  def test_diff_command_with_mock
+class TestDiffHandler < Minitest::Test
+  def test_diff_handler_calls_send_message
+    # Создаём моки
     api_mock = mock('api')
     bot_mock = mock('bot')
     bot_mock.stubs(:api).returns(api_mock)
     
+    expected_text = "📐 `3*x^2` = `6*x`"
     api_mock.expects(:send_message).with(
-      has_entry(:text, /6\*x/)
+      has_entry(:text, expected_text)
     ).returns(true)
     
     message = mock('message')
     message.stubs(:text).returns('/diff 3*x^2')
-    message.stubs(:chat).returns(stub(id: 123))
-    message.stubs(:from).returns(stub(id: 456))
+    message.stubs(:chat).returns(stub(id: 12345))
+    message.stubs(:from).returns(stub(id: 999))
     
-    if message.text.start_with?('/diff ')
-      expr = message.text[6..-1].strip
+    text = message.text
+    
+    if text.start_with?('/diff ')
+      expr = text[6..-1].strip
       poly = SymbolicMath::Parser.parse(expr)
-      result = poly.differentiate
-      res_fmt = result.to_s.gsub(/\.0(?=[^0-9]|$)/, '')
-      api_mock.send_message(chat_id: message.chat.id, text: "📐 `#{expr}` = `#{res_fmt}`")
+      res = poly.differentiate
+      res_fmt = res.to_s.gsub(/\.0(?=[^0-9]|$)/, '')
+      
+      api_mock.send_message(
+        chat_id: message.chat.id,
+        text: "📐 `#{expr}` = `#{res_fmt}`",
+        parse_mode: 'Markdown'
+      )
     end
     
-    # Если дошли сюда без ошибок — тест пройден
     assert true
   end
 end

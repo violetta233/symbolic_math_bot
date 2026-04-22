@@ -1,5 +1,9 @@
 # frozen_string_literal: true
 
+if __FILE__ != $PROGRAM_NAME
+  puts "Bot loaded for testing (not running)"
+end
+
 require 'telegram/bot'
 require 'dotenv/load'
 require 'symbolic_math' 
@@ -78,9 +82,15 @@ end
   end
 
   def reset(uid)
-    uid.to_s
-    save
-  end
+  uid = uid.to_s
+  @data[uid] = {
+    'state' => 'main',
+    'history' => [],
+    'stats' => { 'total' => 0, 'diff' => 0, 'integ' => 0, 'solve' => 0, 'expand' => 0 },
+    'last' => { 'expr' => '', 'result' => '' }
+  }
+  save
+end
 end
 
 $store = UserStore.new
