@@ -169,12 +169,12 @@ begin
       if text == '/help' || text == 'Помощь'
         help = <<~TEXT
           *Справка*
-          *Математика:*
+          *Команды*
           `/diff 3*x^2` → `6*x`
           `/integrate x^2` → `x^3/3 + C`
           `/solve x^2-4=0` → `x₁ = 2, x₂ = -2`
           `/expand (x+2)*(x-3)` → `x^2 - x - 6`
-          *Управление:*
+          *Управление*
           `/history` - показать историю
           `/stats` - статистика
           `/last` - последний результат
@@ -255,33 +255,32 @@ begin
             # КНОПКИ МЕНЮ 
       if text == '/diff'
         $store.set_state(uid, 'wait_diff')
-        send_msg(bot, chat_id, 'Введите выражение для дифференцирования\n\nПример: 3*x^2 + 2*x + 1', cancel_keyboard)
+        send_msg(bot, chat_id, "Введите выражение для дифференцирования\n\nПример: 3*x^2 + 2*x + 1", cancel_keyboard)
         handled = true
         next
       end
 
       if text == '/integrate'
         $store.set_state(uid, 'wait_integrate')
-        send_msg(bot, chat_id, 'Введите выражение для интегрирования\n\nПример: x^2 + 3*x', cancel_keyboard)
+        send_msg(bot, chat_id, "Введите выражение для интегрирования\n\nПример: x^2 + 3*x", cancel_keyboard)
         handled = true
         next
       end
 
       if text == '/solve'
         $store.set_state(uid, 'wait_solve')
-        send_msg(bot, chat_id, 'Введите уравнение\n\nПримеры:\n`2*x + 3 = 7`\n`x^2 - 5*x + 6 = 0`', cancel_keyboard)
+        send_msg(bot, chat_id, "Введите уравнение\n\nПримеры:\n`2*x + 3 = 7`\n`x^2 - 5*x + 6 = 0`", cancel_keyboard)
         handled = true
         next
       end
 
       if text == '/expand'
         $store.set_state(uid, 'wait_expand')
-        send_msg(bot, chat_id, 'Введите выражение со скобками\n\nПример: (x+2)*(x-3)', cancel_keyboard)
+        send_msg(bot, chat_id, "Введите выражение со скобками\n\nПример: (x+2)*(x-3)", cancel_keyboard)
         handled = true
         next
       end
 
-      # ОБРАБОТКА СОСТОЯНИЙ (только если ничего не обработали)
       unless handled
         state_class = case cur_state
         when 'main'

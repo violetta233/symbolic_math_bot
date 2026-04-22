@@ -26,5 +26,20 @@
       "expr": "(x+2)*(x-3)",
       "result": "3*(x - 3"
     }
+  },
+  "1156218058": {
+    "state": "wait_integrate",
+    "history": [],
+    "stats": {
+      "total": 0,
+      "diff": 0,
+      "integ": 0,
+      "solve": 0,
+      "expand": 0
+    },
+    "last": {
+      "expr": "",
+      "result": ""
+    }
   }
 }
