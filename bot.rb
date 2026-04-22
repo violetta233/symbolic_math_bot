@@ -148,7 +148,7 @@ begin
         send_msg(bot, chat_id, welcome, main_keyboard)
         next
       end
-      if text == '/help'  text == 'Помощь'
+      if text == '/help' || text == 'Помощь'
         help = <<~TEXT
           *Справка*
           *Математика:*
@@ -173,13 +173,13 @@ begin
         next
       end
 
-      if text == '/cancel'  text == 'Отмена'
+      if text == '/cancel' || text == 'Отмена'
         $store.set_state(uid, 'main')
         send_msg(bot, chat_id, 'Действие отменено', main_keyboard)
         next
       end
 
-      if text == '/history'  text == 'История'
+      if text == '/history' || text == 'История'
         hist = $store.history(uid)
         if hist.empty?
           send_msg(bot, chat_id, 'История пуста')
@@ -195,7 +195,7 @@ begin
         next
       end
 
-      if text == '/stats'  text == 'Статистика'
+      if text == '/stats' || text == 'Статистика'
         s = $store.stats(uid)
         msg = <<~TEXT
           *Ваша статистика*
