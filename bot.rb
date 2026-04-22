@@ -2,7 +2,7 @@
 
 require 'telegram/bot'
 require 'dotenv/load'
-require 'symbolic_math'
+require 'symbolic_math' 
 require 'json'
 
 require_relative 'states/base_state'
@@ -27,15 +27,18 @@ class UserStore
   end
 
   def get(uid)
-    uid = uid.to_s
+  uid = uid.to_s
+  if !@data[uid]
     @data[uid] = {
-      state: 'main',
-      history: [],
-      stats: { total: 0, diff: 0, integ: 0, solve: 0, expand: 0 },
-      last: { expr: '', result: '' }
+      'state' => 'main',
+      'history' => [],
+      'stats' => { 'total' => 0, 'diff' => 0, 'integ' => 0, 'solve' => 0, 'expand' => 0 },
+      'last' => { 'expr' => '', 'result' => '' }
     }
-    @data[uid]
+    save
   end
+  @data[uid]
+end
 
   def state(uid)
     get(uid)['state']
@@ -99,7 +102,7 @@ def cancel_keyboard
 end
 
 def send_msg(bot, chat_id, text, kb = nil)
-  opt = { chat_id: chat_id, text: text, parse_mode: 'Markdown' }
+  opt = { chat_id: chat_id, text: text }  # убрали , parse_mode: 'Markdown'
   opt[:reply_markup] = kb if kb
   bot.api.send_message(opt)
 end
@@ -115,14 +118,18 @@ puts 'Бот запущен'
 begin
   Telegram::Bot::Client.run(TOKEN) do |bot|
     bot.listen do |message|
+      next unless message.is_a?(Telegram::Bot::Types::Message)
+      next unless message.text
       text = message.text
       chat_id = message.chat.id
       uid = message.from.id
-      username = message.from.username  message.from.first_name
+      username = "#{message.from.username} (#{message.from.first_name})"
 
       puts "[#{uid}] #{username}: #{text}"
 
       cur_state = $store.state(uid)
+      puts "DEBUG: Current state for #{uid}: #{cur_state}"
+      handled = false
 
       #  БАЗОВЫЕ КОМАНДЫ
 
@@ -146,6 +153,7 @@ begin
           /help - справка
         TEXT
         send_msg(bot, chat_id, welcome, main_keyboard)
+        handled = true
         next
       end
       if text == '/help' || text == 'Помощь'
@@ -165,17 +173,20 @@ begin
           `/menu` - показать меню
         TEXT
         send_msg(bot, chat_id, help)
+        handled = true
         next
       end
 
       if text == '/menu'
         send_msg(bot, chat_id, '*Главное меню*', main_keyboard)
+        handled = true
         next
       end
 
       if text == '/cancel' || text == 'Отмена'
         $store.set_state(uid, 'main')
         send_msg(bot, chat_id, 'Действие отменено', main_keyboard)
+        handled = true
         next
       end
 
@@ -192,6 +203,7 @@ begin
           end
           send_msg(bot, chat_id, msg)
         end
+        handled = true
         next
       end
 
@@ -208,6 +220,7 @@ begin
           Раскрытий скобок: #{s['expand']}
         TEXT
         send_msg(bot, chat_id, msg)
+        handled = true
         next
       end
 
@@ -218,60 +231,66 @@ begin
         else
           send_msg(bot, chat_id, "*Последний результат*\n\n`#{last['expr']}\n\n`#{last['result']}")
         end
+        handled = true
         next
       end
 
       if text == '/clear'
         $store.clear_history(uid)
         send_msg(bot, chat_id, 'История очищена')
+        handled = true
         next
       end
 
-      #  КНОПКИ МЕНЮ 
-
-      if text == 'Дифференцировать'
+            # КНОПКИ МЕНЮ 
+      if text == '/diff'
         $store.set_state(uid, 'wait_diff')
         send_msg(bot, chat_id, 'Введите выражение для дифференцирования\n\nПример: 3*x^2 + 2*x + 1', cancel_keyboard)
+        handled = true
         next
       end
 
-      if text == 'Интегрировать'
+      if text == '/integrate'
         $store.set_state(uid, 'wait_integrate')
         send_msg(bot, chat_id, 'Введите выражение для интегрирования\n\nПример: x^2 + 3*x', cancel_keyboard)
+        handled = true
         next
       end
 
-      if text == 'Решить уравнение'
+      if text == '/solve'
         $store.set_state(uid, 'wait_solve')
         send_msg(bot, chat_id, 'Введите уравнение\n\nПримеры:\n`2*x + 3 = 7`\n`x^2 - 5*x + 6 = 0`', cancel_keyboard)
+        handled = true
         next
       end
 
-      if text == 'Раскрыть скобки'
+      if text == '/expand'
         $store.set_state(uid, 'wait_expand')
         send_msg(bot, chat_id, 'Введите выражение со скобками\n\nПример: (x+2)*(x-3)', cancel_keyboard)
+        handled = true
         next
       end
 
-      # ========== ОБРАБОТКА СОСТОЯНИЙ (через классы!) ==========
+      # ОБРАБОТКА СОСТОЯНИЙ (только если ничего не обработали)
+      unless handled
+        state_class = case cur_state
+        when 'main'
+          States::MainState
+        when 'wait_diff'
+          States::WaitDiffState
+        when 'wait_integrate'
+          States::WaitIntegrateState
+        when 'wait_solve'
+          States::WaitSolveState
+        when 'wait_expand'
+          States::WaitExpandState
+        else
+          States::MainState
+        end
 
-      state_class = case cur_state
-      when 'main'
-        States::MainState
-      when 'wait_diff'
-        States::WaitDiffState
-      when 'wait_integrate'
-        States::WaitIntegrateState
-      when 'wait_solve'
-        States::WaitSolveState
-      when 'wait_expand'
-        States::WaitExpandState
-      else
-        States::MainState
+        state = state_class.new(bot, message, $store)
+        state.handle
       end
-
-      state = state_class.new(bot, message, $store)
-      state.handle
     end
   end
 rescue => e

@@ -20,7 +20,7 @@ module States
     protected
 
     def send_msg(text, kb = nil)
-      opt = { chat_id: @chat_id, text: text, parse_mode: 'Markdown' }
+      opt = { chat_id: @chat_id, text: text }
       opt[:reply_markup] = kb if kb
       @bot.api.send_message(opt)
     end

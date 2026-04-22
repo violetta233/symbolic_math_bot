@@ -9,7 +9,7 @@ module States
       typing
       return send_msg('Пусто', cancel_kb) if @text.strip.empty?
       begin
-        res = SymbolicMath::Parser.parse(@text).differentiate
+        res = SymbolicMath::Parser.parse(@text)
         @store.add_history(@uid, 'diff', @text, fmt(res.to_s))
         @store.set_state(@uid, 'main')
         send_msg("Производная: #{fmt(res.to_s)}", main_kb)

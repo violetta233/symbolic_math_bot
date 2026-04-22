@@ -9,7 +9,7 @@ module States
       typing
       return send_msg('Пусто', cancel_kb) if @text.strip.empty?
       begin
-        res = SymbolicMath::Parser.parse(@text).integrate
+        res = SymbolicMath::Parser.parse(@text)
         @store.add_history(@uid, 'integ', @text, fmt(res.to_s))
         @store.set_state(@uid, 'main')
         send_msg("Интеграл: #{fmt(res.to_s)} + C", main_kb)

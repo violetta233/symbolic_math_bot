@@ -1,0 +1,30 @@
+{
+  "1279907976": {
+    "state": "main",
+    "history": [
+      {
+        "cmd": "diff",
+        "input": "3*x^2+2*x",
+        "output": "3*x^2 + 2*x",
+        "time": "2026-04-22 11:15:09 +0000"
+      },
+      {
+        "cmd": "expand",
+        "input": "(x+2)*(x-3)",
+        "output": "3*(x - 3",
+        "time": "2026-04-22 11:16:57 +0000"
+      }
+    ],
+    "stats": {
+      "total": 4,
+      "diff": 1,
+      "integ": 0,
+      "solve": 0,
+      "expand": 3
+    },
+    "last": {
+      "expr": "(x+2)*(x-3)",
+      "result": "3*(x - 3"
+    }
+  }
+}
