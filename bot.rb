@@ -281,6 +281,69 @@ begin
         next
       end
 
+      if text.start_with?('/integrate ')
+        expr = text[11..-1].strip
+        if expr.empty?
+          send_msg(bot, chat_id, "Пример: `/integrate x^2`")
+          next
+        end
+        begin
+          poly = SymbolicMath::Parser.parse(expr)
+          result = poly.integrate
+          send_msg(bot, chat_id, "∫ #{expr} dx = #{result} + C")
+        rescue => e
+          send_msg(bot, chat_id, "Ошибка: #{e.message}")
+        end
+        next
+      end
+
+      if text.start_with?('/diff ')
+        expr = text[6..-1].strip
+        if expr.empty?
+          send_msg(bot, chat_id, "Пример: `/diff 3*x^2`")
+          next
+        end
+        begin
+          poly = SymbolicMath::Parser.parse(expr)
+          result = poly.differentiate
+          send_msg(bot, chat_id, "d/dx(#{expr}) = #{result}")
+        rescue => e
+          send_msg(bot, chat_id, "Ошибка: #{e.message}")
+        end
+        next
+      end
+
+      if text.start_with?('/solve ')
+        eq = text[7..-1].strip
+        if eq.empty?
+          send_msg(bot, chat_id, "Пример: `/solve x^2-4=0`")
+          next
+        end
+        begin
+          result = SymbolicMath::Solver.solve(eq, 'x')
+          out = result.is_a?(Array) ? result.join(', ') : result.to_s
+          send_msg(bot, chat_id, "Решение: #{out}")
+        rescue => e
+          send_msg(bot, chat_id, "Ошибка: #{e.message}")
+        end
+        next
+      end
+
+      if text.start_with?('/expand ')
+        expr = text[8..-1].strip
+        if expr.empty?
+          send_msg(bot, chat_id, "Пример: `/expand (x+2)*(x-3)`")
+          next
+        end
+        begin
+          poly = SymbolicMath::Parser.parse(expr)
+          send_msg(bot, chat_id, "Результат: #{poly}")
+        rescue => e
+          send_msg(bot, chat_id, "Ошибка: #{e.message}")
+        end
+        next
+      end
+      
       unless handled
         state_class = case cur_state
         when 'main'
