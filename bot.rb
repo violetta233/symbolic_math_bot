@@ -112,7 +112,7 @@ def cancel_keyboard
 end
 
 def send_msg(bot, chat_id, text, kb = nil)
-  opt = { chat_id: chat_id, text: text }  # убрали , parse_mode: 'Markdown'
+  opt = { chat_id: chat_id, text: text }  
   opt[:reply_markup] = kb if kb
   bot.api.send_message(opt)
 end
@@ -168,13 +168,15 @@ begin
       end
       if text == '/help' || text == 'Помощь'
         help = <<~TEXT
-          *Справка*
-          *Команды*
+          Справка
+          
+          Команды
           `/diff 3*x^2` → `6*x`
           `/integrate x^2` → `x^3/3 + C`
           `/solve x^2-4=0` → `x₁ = 2, x₂ = -2`
           `/expand (x+2)*(x-3)` → `x^2 - x - 6`
-          *Управление*
+          
+          Управление
           `/history` - показать историю
           `/stats` - статистика
           `/last` - последний результат
@@ -188,7 +190,7 @@ begin
       end
 
       if text == '/menu'
-        send_msg(bot, chat_id, '*Главное меню*', main_keyboard)
+        send_msg(bot, chat_id, 'Главное меню', main_keyboard)
         handled = true
         next
       end
@@ -220,7 +222,7 @@ begin
       if text == '/stats' || text == 'Статистика'
         s = $store.stats(uid)
         msg = <<~TEXT
-          *Ваша статистика*
+          Ваша статистика
 
           Всего операций: *#{s['total']}*
 
