@@ -20,6 +20,8 @@ jobs:
         gem install telegram-bot-ruby
         gem install dotenv
         gem install minitest
+        gem install mocha
+        gem install symbolic_math
     - name: Run tests
       run: |
         ruby test/test1.rb
