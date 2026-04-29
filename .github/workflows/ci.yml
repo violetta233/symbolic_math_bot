@@ -22,6 +22,6 @@ jobs:
         gem install minitest
     - name: Run tests
       run: |
-        ruby test1.rb
-        ruby test2.rb
-        ruby test3.rb
+        ruby test/test1.rb
+        ruby test/test2.rb
+        ruby test/test3.rb
