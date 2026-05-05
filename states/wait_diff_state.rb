@@ -7,17 +7,29 @@ module States
   class WaitDiffState < BaseState
     def handle
       typing
-      return send_msg('Пусто', cancel_kb) if @text.strip.empty?
+      expr = @text.strip
+      
+      if expr.start_with?('/diff ')
+        expr = expr[6..-1].strip
+      end
+      
+      if expr.empty?
+        send_msg("❌ Выражение не может быть пустым", cancel_kb)
+        return
+      end
+      
       begin
-        expr = SymbolicMath::Parser.parse(@text)
-        result = SymbolicMath::Differentiator.differentiate(expr, 'x')
+        poly = SymbolicMath::Parser.parse(expr)
+        res = poly.differentiate
+        res_fmt = fmt(res.to_s)
         
-        @store.add_history(@uid, 'diff', @text, fmt(result.to_s))
+        @store.add_history(@uid, 'diff', expr, res_fmt)
         @store.set_state(@uid, 'main')
-        send_msg("Производная: #{fmt(result.to_s)}", main_kb)
+        
+        send_msg("📐 `#{expr}` = `#{res_fmt}`", main_kb)
       rescue => e
-        send_msg("Ошибка: #{e.message}", cancel_kb)
+        send_msg("❌ Ошибка: #{e.message}", cancel_kb)
       end
     end
   end
-end 
+end

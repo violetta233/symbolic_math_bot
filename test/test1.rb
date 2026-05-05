@@ -74,35 +74,36 @@ end
 
 class TestDiffHandler < Minitest::Test
   def test_diff_handler_calls_send_message
-    # Создаём моки
     api_mock = mock('api')
+    
+    # Разрешаем любые вызовы
+    api_mock.stubs(:send_chat_action).returns(true)
+    api_mock.stubs(:send_message).returns(true)
+    
+    # проверяем, что send_message был вызван с правильным текстом
+    api_mock.expects(:send_message).with(
+      has_entry(:text, "📐 `3*x^2` = `6*x`")
+    ).returns(true)
+    
     bot_mock = mock('bot')
     bot_mock.stubs(:api).returns(api_mock)
-    
-    expected_text = "📐 `3*x^2` = `6*x`"
-    api_mock.expects(:send_message).with(
-      has_entry(:text, expected_text)
-    ).returns(true)
     
     message = mock('message')
     message.stubs(:text).returns('/diff 3*x^2')
     message.stubs(:chat).returns(stub(id: 12345))
     message.stubs(:from).returns(stub(id: 999))
     
-    text = message.text
+    store_mock = stub(
+      get: { 'state' => 'wait_diff' },
+      state: 'wait_diff',
+      add_history: nil,
+      set_state: nil
+    )
     
-    if text.start_with?('/diff ')
-      expr = text[6..-1].strip
-      poly = SymbolicMath::Parser.parse(expr)
-      res = poly.differentiate
-      res_fmt = res.to_s.gsub(/\.0(?=[^0-9]|$)/, '')
-      
-      api_mock.send_message(
-        chat_id: message.chat.id,
-        text: "📐 `#{expr}` = `#{res_fmt}`",
-        parse_mode: 'Markdown'
-      )
-    end
+    require_relative '../states/wait_diff_state'
+    
+    state = States::WaitDiffState.new(bot_mock, message, store_mock)
+    state.handle
     
     assert true
   end
